@@ -1,0 +1,8 @@
+[package]
+name = "retro_platformer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = "0.14"
+blenvy = { git = "https://github.com/kaosat-dev/Blenvy" }
