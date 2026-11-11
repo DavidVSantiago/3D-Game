@@ -43,16 +43,84 @@ pub const SKY_COLOR: Color = Color::srgb(0.45, 0.75, 0.98);
 /// ⬛ Cor das bordas letterbox / pillarbox fora do aspect ratio (quando redimensiona)
 pub const LETTERBOX_COLOR: Color = Color::BLACK;
 
-/// 👾 Desativar Anti-Aliasing (MSAA):
+/// 👾 Desativar Anti-Aliasing Geométrico (MSAA):
 /// true  = Bordas poligonais nítidas e pixeladas autênticas dos consoles retrô
-/// false = Bordas suavizadas modernas
-pub const DISABLE_MSAA: bool = true;
+/// false = Bordas suavizadas modernas (4x MSAA)
+pub const DISABLE_MSAA: bool = false;
 
-/// 🕹️ Forçar filtragem Nearest-Neighbor nas texturas (pixel art nítido sem borrão)
-pub const FORCE_NEAREST_TEXTURES: bool = true;
+/// 🎨 Modo de Filtragem das Texturas (Anti-Aliasing do Chão, Terreno e Objetos):
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextureFilteringMode {
+    /// 👾 Nearest-Neighbor: Pixels nítidos e quadrados (estilo Nintendo DS autêntico)
+    Pixelated,
+    /// 🌊 Linear: Interpolação bilinear/trilinear suave básica
+    Linear,
+    /// 💎 Anisotrópico 16x: Filtragem anisotrópica máxima (chão perfeitamente suave em ângulo rasante sem cintilação)
+    Anisotropic16x,
+}
+
+/// 🎨 Filtragem ativa das texturas:
+/// Alterne entre Anisotropic16x (chão suave e nítido) ou Pixelated (retrô pixel art)
+/// 💡 Também pode ser sobrescrito via terminal: $env:TEXTURE_FILTERING="anisotropic" ou "pixelated"
+pub const TEXTURE_FILTERING: TextureFilteringMode = TextureFilteringMode::Pixelated;
+
+/// ✨ Anti-Aliasing de Pós-Processamento (FXAA) na Câmera 3D:
+/// • true  = Suaviza a cena 3D inteira (arestas + interior de texturas)
+/// • false = Desativado
+pub const ENABLE_FXAA: bool = true;
 
 /// 🎨 Forçar sombreamento cartunesco difuso (remove reflexos especulares plásticos Phong)
 pub const REMOVE_SPECULAR_PHONG: bool = true;
+
+/// Helper para obter o modo de filtragem de texturas respeitando variáveis de ambiente
+pub fn get_texture_filtering_mode() -> TextureFilteringMode {
+    if let Ok(val) = std::env::var("TEXTURE_FILTERING") {
+        match val.to_lowercase().as_str() {
+            "pixelated" | "nearest" | "retro" => TextureFilteringMode::Pixelated,
+            "linear" | "smooth" => TextureFilteringMode::Linear,
+            "anisotropic" | "af" | "aniso" | "16x" => TextureFilteringMode::Anisotropic16x,
+            _ => TEXTURE_FILTERING,
+        }
+    } else {
+        TEXTURE_FILTERING
+    }
+}
+
+// =========================================================================
+// 🚀 PREFERÊNCIAS DE GPU, DRIVER E VSYNC (INVESTIGAÇÃO DE STUTTER)
+// =========================================================================
+
+/// 🎮 Preferência de GPU:
+/// • "high"     = (Recomendado no Windows) Força GPU Dedicada de Alta Performance (NVIDIA RTX 3060 Laptop)
+/// • "low"      = Força GPU Integrada de Baixo Consumo (Intel(R) UHD Graphics)
+/// • "software" = Força renderização por Software via CPU (WARP no Windows via DX12)
+/// • "auto"     = Deixa o WGPU/Bevy decidir automaticamente
+/// 💡 Também pode ser sobrescrito via terminal: $env:GPU_MODE="software" ou "integrated"
+pub const GPU_MODE_PREFERENCE: &str = "high";
+
+/// ⚡ Backend gráfico multiplataforma:
+/// • "auto"   = (Padrão Inteligente) Seleciona a API ideal para cada SO:
+///              • Windows -> DirectX 12 (Flip Model nativo DWM a 120Hz/144Hz sem micro-stutter)
+///              • Linux   -> Vulkan (API nativa de alto desempenho)
+///              • macOS   -> Metal (API nativa da Apple)
+/// • "dx12"   = Força DirectX 12 (Windows)
+/// • "vulkan" = Força Vulkan (Windows / Linux)
+/// • "metal"  = Força Metal (macOS)
+/// 💡 Também pode ser sobrescrito via terminal: $env:RENDER_BACKEND="vulkan"
+pub const RENDER_BACKEND_PREFERENCE: &str = "auto";
+
+/// 🔄 Sincronização Vertical (VSync):
+/// • true  = PresentMode::Fifo (sincroniza com a taxa do monitor)
+/// • false = PresentMode::AutoNoVsync (taxa de quadros livre)
+/// 💡 Também pode ser sobrescrito via terminal: $env:VSYNC="off"
+pub const ENABLE_VSYNC: bool = true;
+
+/// 🎯 Limite de Taxa de Quadros (FPS Cap):
+/// • Some(60.0) = Trava em 60 FPS cravados (padrão autêntico e suave de consoles)
+/// • Some(30.0) = Trava em 30 FPS
+/// • None        = Taxa livre (acompanha os Hz do monitor, ex: 120Hz, 144Hz)
+/// 💡 Também pode ser sobrescrito via terminal: $env:TARGET_FPS="60" ou "none"
+pub const TARGET_FPS: Option<f32> = Some(60.0);
 
 // =========================================================================
 // 🎨 CAMADAS DE RENDERIZAÇÃO (RENDER LAYERS)
@@ -88,11 +156,8 @@ pub struct DisplayPlugin;
 
 impl Plugin for DisplayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, fit_canvas);
-
-        if FORCE_NEAREST_TEXTURES || REMOVE_SPECULAR_PHONG {
-            app.add_systems(Update, enforce_retro_pixel_graphics);
-        }
+        app.add_systems(Update, fit_canvas)
+            .add_systems(Update, enforce_retro_pixel_graphics);
     }
 }
 
@@ -203,8 +268,8 @@ pub fn fit_canvas(
     }
 }
 
-/// 🎮 Garante estilo visual 100% retrô / Nintendo DS:
-/// 1. Força Nearest-Neighbor em todas as texturas mantendo repetição (Repeat/Tiling)
+/// 🎮 Controla a filtragem das texturas e iluminação dos materiais:
+/// 1. Configura amostragem das texturas (Pixelated, Linear ou Anisotrópico 16x) mantendo Tiling (Repeat)
 /// 2. Remove completamente brilho especular Phong (reflectance: 0, roughness: 1)
 pub fn enforce_retro_pixel_graphics(
     mut image_events: EventReader<AssetEvent<Image>>,
@@ -212,47 +277,86 @@ pub fn enforce_retro_pixel_graphics(
     mut material_events: EventReader<AssetEvent<StandardMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    if FORCE_NEAREST_TEXTURES {
-        for event in image_events.read() {
-            if let AssetEvent::Added { id } | AssetEvent::LoadedWithDependencies { id } | AssetEvent::Modified { id } = event {
-                if let Some(image) = images.get(*id) {
-                    // Não altera o canvas interno (deve permanecer ClampToEdge)
-                    if image.texture_descriptor.label == Some("retro_canvas") {
-                        continue;
+    let filtering_mode = get_texture_filtering_mode();
+    let (mag_filter, min_filter, mipmap_filter, anisotropy_clamp) = match filtering_mode {
+        TextureFilteringMode::Pixelated => (
+            ImageFilterMode::Nearest,
+            ImageFilterMode::Nearest,
+            ImageFilterMode::Nearest,
+            1,
+        ),
+        TextureFilteringMode::Linear => (
+            ImageFilterMode::Linear,
+            ImageFilterMode::Linear,
+            ImageFilterMode::Linear,
+            1,
+        ),
+        TextureFilteringMode::Anisotropic16x => (
+            ImageFilterMode::Linear,
+            ImageFilterMode::Linear,
+            ImageFilterMode::Linear,
+            16,
+        ),
+    };
+
+    for event in image_events.read() {
+        if let AssetEvent::Added { id } | AssetEvent::LoadedWithDependencies { id } | AssetEvent::Modified { id } = event {
+            if let Some(image) = images.get(*id) {
+                // Não altera o canvas interno (deve permanecer ClampToEdge e Nearest)
+                if image.texture_descriptor.label == Some("retro_canvas") {
+                    continue;
+                }
+
+                let is_same_filter = match (&image.sampler, filtering_mode) {
+                    (ImageSampler::Descriptor(desc), TextureFilteringMode::Pixelated) => {
+                        matches!(desc.mag_filter, ImageFilterMode::Nearest)
+                            && matches!(desc.min_filter, ImageFilterMode::Nearest)
+                            && matches!(desc.mipmap_filter, ImageFilterMode::Nearest)
+                            && desc.anisotropy_clamp == 1
+                            && matches!(desc.address_mode_u, ImageAddressMode::Repeat)
                     }
+                    (ImageSampler::Descriptor(desc), TextureFilteringMode::Linear) => {
+                        matches!(desc.mag_filter, ImageFilterMode::Linear)
+                            && matches!(desc.min_filter, ImageFilterMode::Linear)
+                            && matches!(desc.mipmap_filter, ImageFilterMode::Linear)
+                            && desc.anisotropy_clamp == 1
+                            && matches!(desc.address_mode_u, ImageAddressMode::Repeat)
+                    }
+                    (ImageSampler::Descriptor(desc), TextureFilteringMode::Anisotropic16x) => {
+                        matches!(desc.mag_filter, ImageFilterMode::Linear)
+                            && matches!(desc.min_filter, ImageFilterMode::Linear)
+                            && matches!(desc.mipmap_filter, ImageFilterMode::Linear)
+                            && desc.anisotropy_clamp == 16
+                            && matches!(desc.address_mode_u, ImageAddressMode::Repeat)
+                    }
+                    _ => false,
+                };
 
-                    let needs_update = match &image.sampler {
-                        ImageSampler::Descriptor(desc) => {
-                            !matches!(desc.mag_filter, ImageFilterMode::Nearest)
-                                || !matches!(desc.min_filter, ImageFilterMode::Nearest)
-                                || matches!(desc.address_mode_u, ImageAddressMode::ClampToEdge)
-                                || matches!(desc.address_mode_v, ImageAddressMode::ClampToEdge)
-                        }
-                        _ => true,
-                    };
+                let needs_update = !is_same_filter;
 
-                    if needs_update {
-                        if let Some(image_mut) = images.get_mut(*id) {
-                            match &mut image_mut.sampler {
-                                ImageSampler::Descriptor(desc) => {
-                                    desc.mag_filter = ImageFilterMode::Nearest;
-                                    desc.min_filter = ImageFilterMode::Nearest;
-                                    desc.mipmap_filter = ImageFilterMode::Nearest;
-                                    desc.address_mode_u = ImageAddressMode::Repeat;
-                                    desc.address_mode_v = ImageAddressMode::Repeat;
-                                    desc.address_mode_w = ImageAddressMode::Repeat;
-                                }
-                                ImageSampler::Default => {
-                                    image_mut.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-                                        mag_filter: ImageFilterMode::Nearest,
-                                        min_filter: ImageFilterMode::Nearest,
-                                        mipmap_filter: ImageFilterMode::Nearest,
-                                        address_mode_u: ImageAddressMode::Repeat,
-                                        address_mode_v: ImageAddressMode::Repeat,
-                                        address_mode_w: ImageAddressMode::Repeat,
-                                        ..default()
-                                    });
-                                }
+                if needs_update {
+                    if let Some(image_mut) = images.get_mut(*id) {
+                        match &mut image_mut.sampler {
+                            ImageSampler::Descriptor(desc) => {
+                                desc.mag_filter = mag_filter;
+                                desc.min_filter = min_filter;
+                                desc.mipmap_filter = mipmap_filter;
+                                desc.anisotropy_clamp = anisotropy_clamp;
+                                desc.address_mode_u = ImageAddressMode::Repeat;
+                                desc.address_mode_v = ImageAddressMode::Repeat;
+                                desc.address_mode_w = ImageAddressMode::Repeat;
+                            }
+                            ImageSampler::Default => {
+                                image_mut.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+                                    mag_filter,
+                                    min_filter,
+                                    mipmap_filter,
+                                    anisotropy_clamp,
+                                    address_mode_u: ImageAddressMode::Repeat,
+                                    address_mode_v: ImageAddressMode::Repeat,
+                                    address_mode_w: ImageAddressMode::Repeat,
+                                    ..default()
+                                });
                             }
                         }
                     }

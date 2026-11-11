@@ -49,40 +49,41 @@ fn setup_initial_terrain(mut commands: Commands, current_level: Res<CurrentLevel
 
 // Spawna a entidade raiz da fase com o BlueprintInfo do Blenvy
 pub fn spawn_level(commands: &mut Commands, path: &str) -> Entity {
-    commands.spawn((
-        LevelRoot,
-        BlueprintInfo::from_path(path),
-        SpatialBundle::default(),
-    )).id()
+    commands
+        .spawn((
+            LevelRoot,
+            BlueprintInfo::from_path(path),
+            SpatialBundle::default(),
+        ))
+        .id()
 }
 
 // Identifica recursivamente as malhas que foram instanciadas como parte da cena do terreno
 fn tag_terrain_meshes(
     mut commands: Commands,
     level_roots: Query<Entity, With<LevelRoot>>,
-    children_query: Query<&Children>,
-    unmarked_meshes: Query<Entity, (With<Handle<Mesh>>, Without<TerrainMesh>)>,
+    parents: Query<&Parent>,
+    unmarked_meshes: Query<(Entity, Option<&Parent>), (With<Handle<Mesh>>, Without<TerrainMesh>)>,
+    added_roots: Query<Entity, Added<LevelRoot>>,
+    changed_children: Query<(), Changed<Children>>,
 ) {
-    if level_roots.is_empty() { return; }
-
-    for root in &level_roots {
-        tag_descendants(root, &children_query, &unmarked_meshes, &mut commands);
-    }
-}
-
-fn tag_descendants(
-    entity: Entity,
-    children_query: &Query<&Children>,
-    unmarked_meshes: &Query<Entity, (With<Handle<Mesh>>, Without<TerrainMesh>)>,
-    commands: &mut Commands,
-) {
-    if unmarked_meshes.contains(entity) {
-        commands.entity(entity).insert(TerrainMesh);
+    // A hierarquia só precisa ser percorrida quando surge uma fase ou quando o
+    // carregador adiciona/remaneja filhos, não continuamente em cada quadro.
+    if added_roots.is_empty() && changed_children.is_empty() {
+        return;
     }
 
-    if let Ok(children) = children_query.get(entity) {
-        for child in children.iter() {
-            tag_descendants(*child, children_query, unmarked_meshes, commands);
+    // Examina apenas malhas ainda não identificadas, em vez de percorrer toda a
+    // hierarquia do nível em todos os quadros. Caminhar pelos pais também suporta
+    // entidades/filhos que o carregador do GLB adicione depois da raiz.
+    for (mesh_entity, parent) in &unmarked_meshes {
+        let mut ancestor = parent.map(Parent::get);
+        while let Some(entity) = ancestor {
+            if level_roots.contains(entity) {
+                commands.entity(mesh_entity).insert(TerrainMesh);
+                break;
+            }
+            ancestor = parents.get(entity).ok().map(Parent::get);
         }
     }
 }

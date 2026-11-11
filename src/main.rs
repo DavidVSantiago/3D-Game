@@ -1,20 +1,18 @@
-mod camera;
-mod collision;
-mod display;
-mod interaction;
-mod player;
-mod terrain;
+mod scene;
+mod settings;
 
 use bevy::prelude::*;
+use bevy::render::RenderPlugin;
 use blenvy::BlenvyPlugin;
-use camera::LakituCameraPlugin;
-use collision::CollisionPlugin;
-use display::{
-    DisplayPlugin, DISABLE_MSAA, WINDOW_HEIGHT, WINDOW_RESIZABLE, WINDOW_TITLE, WINDOW_WIDTH,
+use scene::camera::camera::{self, LakituCameraPlugin};
+use scene::objects::interaction::InteractionPlugin;
+use scene::player::player::PlayerPlugin;
+use scene::world::collision::CollisionPlugin;
+use scene::world::terrain::TerrainPlugin;
+use settings::diagnostics::{DiagnosticRenderConfig, DiagnosticsPlugin};
+use settings::display::{
+    self, DISABLE_MSAA, DisplayPlugin, WINDOW_HEIGHT, WINDOW_RESIZABLE, WINDOW_TITLE, WINDOW_WIDTH,
 };
-use interaction::InteractionPlugin;
-use player::PlayerPlugin;
-use terrain::TerrainPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -30,7 +28,17 @@ fn main() {
         app.insert_resource(Msaa::Off);
     }
 
-    // 📺 Janela e plugins padrão configurados via display.rs
+    // 🛠️ Carrega configurações de GPU, backend e VSync para testes de diagnóstico
+    let diag_config = DiagnosticRenderConfig::load_configuration();
+    let render_creation = diag_config.build_render_creation();
+
+    // 🖼️ Plugin de imagem configurado conforme a preferência de textura (Nearest vs Linear/Anisotrópico)
+    let image_plugin = match display::get_texture_filtering_mode() {
+        display::TextureFilteringMode::Pixelated => ImagePlugin::default_nearest(),
+        _ => ImagePlugin::default_linear(),
+    };
+
+    // 📺 Janela e plugins padrão configurados via display.rs e diagnostics.rs
     app.add_plugins(
         DefaultPlugins
             .set(WindowPlugin {
@@ -38,11 +46,16 @@ fn main() {
                     title: WINDOW_TITLE.into(),
                     resolution: bevy::window::WindowResolution::new(WINDOW_WIDTH, WINDOW_HEIGHT),
                     resizable: WINDOW_RESIZABLE,
+                    present_mode: diag_config.present_mode,
                     ..default()
                 }),
                 ..default()
             })
-            .set(ImagePlugin::default_nearest()),
+            .set(image_plugin)
+            .set(RenderPlugin {
+                render_creation,
+                ..default()
+            }),
     )
     .add_plugins(BlenvyPlugin::default())
     // 📺 Sistema de exibição e canvas de vídeo (display.rs)
@@ -57,6 +70,8 @@ fn main() {
     .add_plugins(LakituCameraPlugin)
     // 🏃 Jogador e física de movimentação
     .add_plugins(PlayerPlugin)
+    // ⏱️ Diagnóstico de hardware, GPU e monitoramento de frame pacing
+    .add_plugins(DiagnosticsPlugin)
     // 🔄 Inicialização encadeada: cria o canvas primeiro, depois instancia a câmera 3D acoplada a ele
     .add_systems(
         Startup,

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use crate::collision::LevelCollision;
-use crate::interaction::{CollectibleKind, ItemCollectedEvent, PlayerDamageEvent};
+use crate::scene::world::collision::LevelCollision;
+use crate::scene::objects::interaction::{CollectibleKind, ItemCollectedEvent, PlayerDamageEvent};
 
 // 📏 Dimensões do corpo do jogador (cone de 1.2 de altura e raio 0.5, origem no centro)
 const PLAYER_HALF_HEIGHT: f32 = 0.6;

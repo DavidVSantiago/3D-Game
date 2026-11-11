@@ -1,8 +1,8 @@
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
-use crate::display::{RetroCanvasTarget, PIXEL_PERFECT_LAYER, SKY_COLOR};
-use crate::player::Player;
+use crate::scene::player::Player;
+use crate::settings::display::{ENABLE_FXAA, PIXEL_PERFECT_LAYER, RetroCanvasTarget, SKY_COLOR};
 
 // 🎥 Configuração e estado da Câmera estilo Lakitu (Super Mario 64)
 #[derive(Component)]
@@ -57,7 +57,7 @@ pub fn spawn_camera(
         horizontal_dist * default_cam.yaw.cos(),
     );
 
-    commands.spawn((
+    let camera_entity = commands.spawn((
         Camera3dBundle {
             camera: Camera {
                 order: -1, // Renderiza ANTES da câmera de exibição da janela
@@ -70,7 +70,11 @@ pub fn spawn_camera(
         },
         default_cam,
         PIXEL_PERFECT_LAYER,
-    ));
+    )).id();
+
+    if ENABLE_FXAA {
+        commands.entity(camera_entity).insert(bevy::core_pipeline::fxaa::Fxaa::default());
+    }
 }
 
 // 🎮 Sistema de controle e perseguição suave estilo Lakitu

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::player::Player;
+use crate::scene::player::Player;
 
 // 📦 Tipo de item coletável
 #[allow(dead_code)]

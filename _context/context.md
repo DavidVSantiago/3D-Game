@@ -21,14 +21,17 @@
 1. **Stack Central:** **Rust + Bevy 0.14.2 + Blenvy**.
    * O Blender atua como editor de fases e blueprints (geometria de terreno, posicionamento de objetos e entidades).
    * O Bevy consome as cenas `.glb` exportadas pelo Blenvy e executa toda a física, lógica de jogo, câmera e pipeline de renderização em código de máquina de altíssimo desempenho.
-2. **Separação Modular de Responsabilidades:**
-   * `src/display.rs`: Centraliza todas as variáveis de resolução, proporção, canvas retrô e tratamento de texturas/shaders.
-   * `src/camera.rs`: Câmera orbital estilo Lakitu (SM64), com rotação suave, zoom e perseguição desacoplada do display.
-   * `src/player.rs`: Física de movimentação (inércia, derrapagem, gravidade, pulo com corte, inclinação sutil em ladeiras) e vida/status.
-   * `src/terrain.rs`: Gerenciador de fases e ciclo de vida dos terrenos (`LevelRoot`, `TerrainMesh`, `ChangeLevelEvent`).
-   * `src/collision.rs`: Sistema determinístico de colisão com triângulos estáticos de malha (Piso, Parede, Teto).
-   * `src/interaction.rs`: Sistema de objetos interativos dinâmicos com hitboxes (Inimigos/Espinhos, Coletáveis/Moedas, Obstáculos Sólidos, Zonas de Gatilho).
-   * `src/main.rs`: Inicialização dos plugins e encadeamento da esteira de inicialização (*Startup schedule*).
+2. **Hierarquia Modular de Responsabilidades (`src/`):**
+   * `src/main.rs`: Ponto de entrada e inicialização dos plugins e da esteira *Startup*.
+   * `src/settings/`: Configurações globais e infraestrutura do motor:
+     * `src/settings/display.rs`: Centraliza todas as variáveis de resolução, proporção, canvas retrô, MSAA e filtragem de texturas (Anisotrópico 16x / Linear / Pixelated).
+     * `src/settings/diagnostics.rs`: Seleção automática multiplataforma de GPU/Backend (DX12 no Windows, Vulkan no Linux, Metal no macOS), trava de 60 FPS e telemetria de frame time.
+   * `src/scene/`: Elementos de cena e gameplay subdivididos por domínio:
+     * `src/scene/player/player.rs`: Física de movimentação (inércia, derrapagem, gravidade, pulo com corte, inclinação em ladeiras) e vida/status do jogador.
+     * `src/scene/world/terrain.rs`: Gerenciador de fases e ciclo de vida dos terrenos (`LevelRoot`, `TerrainMesh`, `ChangeLevelEvent`).
+     * `src/scene/world/collision.rs`: Sistema determinístico de colisão com triângulos estáticos da malha do cenário (Piso, Parede, Teto), acelerado por grade espacial uniforme XZ.
+     * `src/scene/objects/interaction.rs`: Sistema de objetos interativos dinâmicos com hitboxes (Inimigos/Espinhos, Coletáveis/Moedas, Obstáculos Sólidos, Zonas de Gatilho).
+     * `src/scene/camera/camera.rs`: Câmera orbital estilo Lakitu (SM64), com rotação suave, zoom e perseguição desacoplada do display.
 
 ---
 
@@ -72,6 +75,37 @@
 ### I. Centralização e Desacoplamento no Módulo `src/display.rs`
 * **Sintoma:** Variáveis de vídeo, resolução e shaders estavam espalhadas entre `camera.rs` e `main.rs`.
 * **Solução:** Criação de `src/display.rs`, expondo todas as variáveis e presets no topo do arquivo de forma clara e intuitiva.
+
+### J. Otimização das Consultas de Colisão e Marcação do Terreno
+* **Sintoma:** As buscas de piso, teto e paredes percorriam listas completas de triângulos em cada atualização do jogador; a hierarquia do terreno também era percorrida continuamente.
+* **Solução em `src/collision.rs`:** Construção de uma grade espacial uniforme 2D no plano XZ, com células de 4 unidades. Piso e teto consultam os triângulos candidatos da célula do ponto; paredes consultam as células cobertas pela AABB do raio, eliminam candidatos repetidos e usam um filtro AABB antes do teste geométrico exato.
+* **Geometria extensa:** Triângulos que ocupariam mais de 64 células são mantidos numa lista de fallback e continuam sendo considerados, evitando falsos negativos em superfícies grandes.
+* **Construção da colisão:** Os índices das malhas são percorridos diretamente, sem criar uma cópia temporária.
+* **`src/terrain.rs`:** A identificação das malhas do terreno só percorre a hierarquia quando aparece uma raiz de fase ou mudam relações pai-filho, em vez de repetir a busca em cada quadro.
+* **Validação:** `cargo check` e `cargo test` passaram. Foram adicionados testes para consultas em coordenadas positivas e negativas, deduplicação de candidatos da consulta de paredes e fallback de triângulos grandes.
+* **Resultado observado:** A colisão melhorou perceptivelmente, eliminando custos de CPU na busca geométrica.
+
+### K. Diagnóstico e Resolução dos Engasgos no Windows (GPU Híbrida Optimus & Backend DX12)
+* **Sintoma:** Micro-stutters e engasgos visuais durante a movimentação da câmera e do jogador no Windows em notebook com GPU híbrida (Intel UHD + NVIDIA RTX 3060 Laptop).
+* **Diagnóstico Experimental com Métricas Reais:**
+  * **Cenário 1 (GPU Integrada Intel UHD):** O jogo despenca para **31.9 FPS**, tempo de quadro médio de **31.2ms** e picos de travamento de até **118.58ms** (> 33 spikes de stutter por segundo!). Ficou provado que, se o Windows alocar o processo na GPU integrada (por exemplo, no perfil de economia de bateria), o jogo engasga criticamente.
+  * **Cenário 2 (Renderização por Software via CPU WARP / DX12):** O rasterizador por software funciona, porém roda entre **4 e 36 FPS** com tempos de quadro de **27ms a 217ms**, confirmando que a pipeline PBR do Bevy exige aceleração gráfica dedicada.
+  * **Cenário 3 (RTX 3060 Laptop com Vulkan):** A GPU gera folgadamente entre **190 e 730 FPS**, porém a sincronização com o compositor do Windows (DWM) em notebooks Optimus sofre com dessincronização de frame pacing, gerando sensação de stutter/judder visual na tela de 120Hz.
+  * **Cenário 4 (RTX 3060 Laptop com DirectX 12):** O DX12 ativa o modelo Flip nativo (`DXGI_SWAP_EFFECT_FLIP_DISCARD`), sincronizando os frames cravados na taxa do display físico (**118.2 FPS consistentes, 8.46ms de frame time e ZERO spikes de stutter**).
+* **Solução Implementada:**
+  * Módulo `src/diagnostics.rs` integrado com monitoramento ao vivo de frame time, FPS, 1% Low, desvio padrão/jitter e spikes > 25ms, exibidos tanto no console quanto no título da janela.
+  * Configurações centralizadas em `src/display.rs` definindo `GPU_MODE_PREFERENCE = "high"` (força a GPU dedicada) e `RENDER_BACKEND_PREFERENCE = "auto"`.
+  * **Seleção Condicional Multiplataforma (`#[cfg(target_os)]`):** No modo `"auto"`, o código detecta em tempo de compilação o sistema operacional de destino e seleciona a API gráfica nativa ideal:
+    * **Windows:** DirectX 12 (Flip Model DWM a 120Hz/144Hz sem micro-stutter em notebooks Optimus).
+    * **Linux:** Vulkan (API nativa de alta performance).
+    * **macOS:** Metal (API nativa da Apple).
+  * Suporte nativo a variáveis de ambiente para testes A/B futuros (`$env:GPU_MODE="software"`, `$env:GPU_MODE="integrated"`, `$env:RENDER_BACKEND="vulkan"`, `$env:VSYNC="off"`).
+  * **Trava de Taxa de Quadros (TargetFps a 60 FPS):** Implementado limitador de frame rate de precisão com sleep calibrado e spin-wait (`TARGET_FPS = Some(60.0)` em `src/display.rs`), cravando exatamente em **60.0 FPS / 16.66ms** para reproduzir a cadência estável e autêntica de consoles de videogame, além de poupar energia/temperatura na GPU. Pode ser desligado ou customizado via `$env:TARGET_FPS="none"` ou no código.
+  * **Anti-Aliasing Refinado de Textura e Geometria:**
+    * **Bordas Poligonais:** `DISABLE_MSAA = false` ativa o **4x MSAA** nas silhuetas geométricas.
+    * **Textura do Chão e Terreno:** Implementado `TextureFilteringMode::Anisotropic16x` com amostragem linear e **Filtragem Anisotrópica de 16 amostras** (`anisotropy_clamp: 16`), eliminando a cintilação (*shimmering*) e o serrilhado em perspectiva inclinada.
+    * **Pós-processamento FXAA:** Suporte opcional a `ENABLE_FXAA` na câmera 3D.
+    * Permite alternar via código ou terminal (`$env:TEXTURE_FILTERING="pixelated"` para voltar ao modo Nintendo DS com pixels definidos).
 
 ---
 
@@ -496,10 +530,11 @@ pub fn lakitu_camera_system(
 ---
 
 ### `src/collision.rs` (Física Estática Determinística estilo SM64)
-* Mantém o recurso `LevelCollision` com triângulos em espaço de mundo classificados pela normal:
-  * Piso (`normal.y > 0.5`): Raio baricêntrico vertical com degrau máximo de subida (`STEP_HEIGHT = 0.5`) e *snap* ao descer.
-  * Parede (`|normal.y| <= 0.5`): Esfera de colisão empurrando horizontalmente para fora.
-  * Teto (`normal.y < -0.5`): Cancela subida vertical imediatamente ao bater a cabeça.
+* Mantém o recurso `LevelCollision` com triângulos em espaço de mundo classificados pela normal e uma grade espacial uniforme XZ para restringir candidatos:
+  * Piso (`normal.y > 0.5`): Consulta triângulos da célula XZ do jogador; mantém o teste baricêntrico vertical, degrau máximo de subida (`STEP_HEIGHT = 0.5`) e *snap* ao descer.
+  * Parede (`|normal.y| <= 0.5`): Consulta células cobertas pela AABB do raio, remove candidatos duplicados, filtra por AABB do triângulo e mantém o teste preciso de ponto mais próximo para empurrar horizontalmente.
+  * Teto (`normal.y < -0.5`): Consulta triângulos da célula XZ do jogador e mantém o cancelamento da subida ao bater a cabeça.
+* Triângulos que cobrem mais de 64 células são mantidos num fallback global; os índices espaciais são reconstruídos ao montar a colisão do nível, não durante cada busca.
 
 ---
 
@@ -609,12 +644,21 @@ fn setup_scene(mut commands: Commands) {
 4. **[CONCLUÍDO] Colisão Determinística Estática com Terreno (Passo 4):**
    * Detecção de piso baricêntrico em espaço de mundo, colisão esférica com paredes e cancelamento em tetos.
    * Alinhamento sutil do corpo do jogador à normal do terreno em subidas e descidas (`tilt`), com limiar superior angular.
+    * Otimização das consultas com grade espacial XZ, filtro AABB para paredes, acesso direto aos índices da malha e marcação do terreno acionada por alterações na hierarquia. Testes unitários da grade e compilação passaram.
 5. **[CONCLUÍDO] Refatoração Modular para Múltiplas Fases e Objetos:**
    * Separação de terrenos (`terrain.rs`), objetos interativos (`interaction.rs`), colisão de terreno isolada (`collision.rs`) e dados do jogador (`player.rs`).
 6. **[CONCLUÍDO] Estética Nintendo DS & Renderização Interna 144p:**
    * Texturas Nearest com repetição (Tiling), materiais difusos sem reflexo Phong, sem MSAA.
    * Renderização 3D offscreen travada estritamente na resolução configurada em `src/display.rs` com redimensionamento dinâmico e preservação de aspect ratio.
-7. **[PRÓXIMO CAPÍTULO] Modelo Final e Animações:**
+7. **[CONCLUÍDO] Investigação e Diagnóstico Definitivo dos Engasgos no Windows:**
+   * Implementado o módulo `src/diagnostics.rs` com métricas em tempo real (FPS, frame time, 1% low, jitter e contador de spikes) e identificação do adaptador físico WGPU.
+   * **Testes A/B Realizados:**
+     * *GPU Integrada (Intel UHD):* Gargalo crítico a **31.9 FPS**, 31.2ms médios e travamentos de até **118.58ms** (>33 spikes/s).
+     * *Software Rendering (WARP DX12):* Roda a **4-36 FPS** com tempos de até 217ms, provando a necessidade de aceleração por GPU dedicada.
+     * *RTX 3060 Laptop (Vulkan):* Gera 190-730 FPS, mas com dessincronização em relação à taxa nativa de 120Hz do display em laptops Optimus.
+     * *RTX 3060 Laptop (DirectX 12):* Sincronização impecável com o DWM via DXGI Flip Model, cravando **118.2 FPS consistentes, 8.46ms de frame time e ZERO spikes**.
+   * **Resolução:** Configurado `GPU_MODE_PREFERENCE = "high"` e `RENDER_BACKEND_PREFERENCE = "dx12"` em `src/display.rs`, com fallback para variáveis de ambiente.
+8. **[PRÓXIMO CAPÍTULO] Modelo Final e Animações:**
    * Modelagem/importação da malha 3D final do personagem no Blender com esqueleto e animações (andar, correr, pular, derrapar, ficar parado).
    * Integração do mixer de animações do Bevy para transições fluidas baseadas na velocidade do `PlayerController`.
    * Criação de novos cenários no Blender e posicionamento de moedas/inimigos usando a arquitetura de `interaction.rs`.
