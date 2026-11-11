@@ -1,0 +1,14 @@
+info: Display: Canvas interno inicializado em 854x480 (Escala inicial: 1.50x, Filtro Textura: Pixelated, FXAA: true)
+info: ============================================================
+info: 🎮 [GPU DIAGNOSTICS] Adaptador Ativo (Raylib / OpenGL 3.3):
+info:    • Dispositivo:      NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2
+info:    • Fornecedor:       NVIDIA Corporation
+info:    • Backend Gráfico:  OpenGL 3.3 Core (windows)
+info:    • Preferência GPU:  HighPerformance
+info:    • Limite de FPS:    60 FPS cravados
+info:    • Versão Driver:    3.3.0 NVIDIA 621.01
+info: ============================================================
+info: Carregando terreno: assets/levels/Scene.glb
+info: Colisão do nível: 18 pisos, 0 paredes, 0 tetos
+info: ⏱️ [PERF] FPS:  60.0 (Alvo: 60) (Méd: 16.67ms) | 1% Low:  59.6 FPS (16.77ms) | Min/Máx: 16.67/16.77ms | Jitter(σ): 0.02ms | Spikes: 0
+info: ⏱️ [PERF] FPS:  59.9 (Alvo: 60) (Méd: 16.68ms) | 1% Low:  56.8 FPS (17.60ms) | Min/Máx: 16.67/17.60ms | Jitter(σ): 0.12ms | Spikes: 0

@@ -1,0 +1,11 @@
+.{
+    .name = .retro_platformer,
+    .version = "0.1.0",
+    .fingerprint = 0xf720193564dd1935,
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
