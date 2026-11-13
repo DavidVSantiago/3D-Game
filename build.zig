@@ -53,12 +53,11 @@ pub fn build(b: *std.Build) void {
             .root = b.path("vendor/raylib/src"),
             .files = &.{"rglfw.c"},
             .flags = &.{
-                "-x",
-                "objective-c",
                 "-DPLATFORM_DESKTOP",
                 "-DGRAPHICS_API_OPENGL_33",
                 "-fno-sanitize=undefined",
             },
+            .language = .objective_c,
         });
         exe_mod.linkFramework("OpenGL", .{});
         exe_mod.linkFramework("Cocoa", .{});

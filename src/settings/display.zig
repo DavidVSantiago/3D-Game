@@ -480,16 +480,16 @@ fn loadGlFns() ?GlFns {
         ptrs[i] = glfwGetProcAddress(n) orelse return null;
     }
     return GlFns{
-        .genFramebuffers = @ptrCast(ptrs[0]),
-        .deleteFramebuffers = @ptrCast(ptrs[1]),
-        .bindFramebuffer = @ptrCast(ptrs[2]),
-        .genRenderbuffers = @ptrCast(ptrs[3]),
-        .deleteRenderbuffers = @ptrCast(ptrs[4]),
-        .bindRenderbuffer = @ptrCast(ptrs[5]),
-        .renderbufferStorageMultisample = @ptrCast(ptrs[6]),
-        .framebufferRenderbuffer = @ptrCast(ptrs[7]),
-        .checkFramebufferStatus = @ptrCast(ptrs[8]),
-        .blitFramebuffer = @ptrCast(ptrs[9]),
+        .genFramebuffers = @ptrCast(@alignCast(ptrs[0])),
+        .deleteFramebuffers = @ptrCast(@alignCast(ptrs[1])),
+        .bindFramebuffer = @ptrCast(@alignCast(ptrs[2])),
+        .genRenderbuffers = @ptrCast(@alignCast(ptrs[3])),
+        .deleteRenderbuffers = @ptrCast(@alignCast(ptrs[4])),
+        .bindRenderbuffer = @ptrCast(@alignCast(ptrs[5])),
+        .renderbufferStorageMultisample = @ptrCast(@alignCast(ptrs[6])),
+        .framebufferRenderbuffer = @ptrCast(@alignCast(ptrs[7])),
+        .checkFramebufferStatus = @ptrCast(@alignCast(ptrs[8])),
+        .blitFramebuffer = @ptrCast(@alignCast(ptrs[9])),
     };
 }
 
