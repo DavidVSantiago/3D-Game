@@ -1,0 +1,111 @@
+INFO: Initializing raylib 5.5
+INFO: Platform backend: DESKTOP (GLFW)
+INFO: Supported raylib modules:
+INFO:     > rcore:..... loaded (mandatory)
+INFO:     > rlgl:...... loaded (mandatory)
+INFO:     > rshapes:... loaded (optional)
+INFO:     > rtextures:. loaded (optional)
+INFO:     > rtext:..... loaded (optional)
+INFO:     > rmodels:... loaded (optional)
+INFO:     > raudio:.... loaded (optional)
+INFO: DISPLAY: Trying to enable MSAA x4
+INFO: DISPLAY: Trying to enable VSYNC
+INFO: DISPLAY: Device initialized successfully
+INFO:     > Display size: 2560 x 1600
+INFO:     > Screen size:  1280 x 720
+INFO:     > Render size:  1280 x 720
+INFO:     > Viewport offsets: 0, 0
+INFO: GLAD: OpenGL extensions loaded successfully
+INFO: GL: Supported extensions count: 404
+INFO: GL: OpenGL device information:
+INFO:     > Vendor:   NVIDIA Corporation
+INFO:     > Renderer: NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2
+INFO:     > Version:  3.3.0 NVIDIA 621.01
+INFO:     > GLSL:     3.30 NVIDIA via Cg compiler
+INFO: GL: VAO extension detected, VAO functions loaded successfully
+INFO: GL: NPOT textures extension detected, full NPOT textures supported
+INFO: GL: DXT compressed textures supported
+INFO: GL: ETC2/EAC compressed textures supported
+INFO: PLATFORM: DESKTOP (GLFW - Win32): Initialized successfully
+INFO: TEXTURE: [ID 1] Texture loaded successfully (1x1 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 1] Default texture loaded successfully
+INFO: SHADER: [ID 1] Vertex shader compiled successfully
+INFO: SHADER: [ID 2] Fragment shader compiled successfully
+INFO: SHADER: [ID 3] Program shader loaded successfully
+INFO: SHADER: [ID 3] Default shader loaded successfully
+INFO: RLGL: Render batch vertex buffers loaded successfully in RAM (CPU)
+INFO: RLGL: Render batch vertex buffers loaded successfully in VRAM (GPU)
+INFO: RLGL: Default OpenGL state initialized successfully
+INFO: TEXTURE: [ID 2] Texture loaded successfully (128x128 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Default font loaded successfully (224 glyphs)
+INFO: SYSTEM: Working Directory: E:\_CODES\3D-Game
+INFO: FILEIO: [assets/fonts/arial.ttf] File loaded successfully
+INFO: TEXTURE: [ID 3] Texture loaded successfully (512x512 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Data loaded successfully (48 pixel size | 117 glyphs)
+INFO: TEXTURE: [ID 4] Texture loaded successfully (854x480 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 1] Depth renderbuffer loaded successfully (32 bits)
+INFO: FBO: [ID 1] Framebuffer object created successfully
+INFO: TEXTURE: [ID 5] Texture loaded successfully (854x480 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 4] Depth renderbuffer loaded successfully (32 bits)
+INFO: FBO: [ID 3] Framebuffer object created successfully
+INFO: SHADER: [ID 4] Vertex shader compiled successfully
+INFO: SHADER: [ID 5] Fragment shader compiled successfully
+INFO: SHADER: [ID 6] Program shader loaded successfully
+INFO: SHADER: [ID 4] Fragment shader compiled successfully
+INFO: SHADER: [ID 5] Program shader loaded successfully
+INFO: FILEIO: [assets/levels/Scene.glb] File loaded successfully
+INFO: MODEL: [assets/levels/Scene.glb] Model basic data (glb) loaded successfully
+INFO:     > Meshes count: 1
+INFO:     > Materials count: 1 (+1 default)
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8 | 1 mipmaps)
+INFO: TEXTURE: [ID 6] Texture loaded successfully (64x64 | R8G8B8 | 1 mipmaps)
+INFO: VAO: [ID 2] Mesh uploaded successfully to VRAM (GPU)
+INFO: TEXTURE: [ID 6] Mipmaps generated automatically, total: 7
+INFO: FILEIO: [assets/person/esqueleto.glb] File loaded successfully
+INFO: MODEL: [assets/person/esqueleto.glb] Model basic data (glb) loaded successfully
+INFO:     > Meshes count: 2
+INFO:     > Materials count: 1 (+1 default)
+INFO: IMAGE: Data loaded successfully (1024x1024 | R8G8B8 | 1 mipmaps)
+INFO: TEXTURE: [ID 7] Texture loaded successfully (1024x1024 | R8G8B8 | 1 mipmaps)
+INFO: VAO: [ID 3] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 4] Mesh uploaded successfully to VRAM (GPU)
+INFO: FILEIO: [assets/person/esqueleto.glb] File loaded successfully
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Death|Cha (45 frames, 0.750000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Death|Cha.001 (45 frames, 0.750000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Duck|Char (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Duck|Char.001 (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|HitReact| (35 frames, 0.583333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|HitReact|.001 (35 frames, 0.583333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Idle|Char (59 frames, 1.000000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Idle|Char.001 (59 frames, 1.000000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Idle|Char.002 (59 frames, 1.000000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_.001 (30 frames, 0.500000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_.002 (30 frames, 0.500000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_Idle (30 frames, 0.500000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_Idle.001 (30 frames, 0.500000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_Land (20 frames, 0.333333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump_Land.001 (20 frames, 0.333333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump|Char (20 frames, 0.333333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Jump|Char.001 (20 frames, 0.333333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|No|Charac (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|No|Charac.001 (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Punch|Cha (45 frames, 0.750000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Punch|Cha.001 (45 frames, 0.750000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Run|Chara (42 frames, 0.708333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Run|Chara.001 (42 frames, 0.708333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Sword|Cha (50 frames, 0.833333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Sword|Cha.001 (50 frames, 0.833333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Walk|Char (59 frames, 1.000000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Walk|Char.001 (59 frames, 1.000000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Wave|Char (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Wave|Char.001 (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Yes|Chara (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: CharacterArmature|CharacterArmature|CharacterArmature|Yes|Chara.001 (99 frames, 1.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Attack (40 frames, 0.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Death (50 frames, 0.833333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|HitRecieve (13 frames, 0.208333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Idle (197 frames, 3.333333s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Jump (15 frames, 0.250000s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Run (40 frames, 0.666667s)
+INFO: MODEL: [assets/person/esqueleto.glb] Loaded animation: EnemyArmature|EnemyArmature|EnemyArmature|Walk (118 frames, 2.000000s)
+INFO: TEXTURE: [ID 7] Mipmaps generated automatically, total: 11

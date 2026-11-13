@@ -1,0 +1,22 @@
+info: Display: Fonte TrueType Arial carregada com sucesso (assets/fonts/arial.ttf)
+info: Display: Canvas interno 854x480 (Escala: 1.50x, Canvas: Bilinear, Texturas: CrispPixelAA, Fallback: Anisotropic16x, Near: 8.0, Far: 16.5, FXAA: false, OSD: true)
+info: ============================================================
+info: 🎮 [GPU DIAGNOSTICS] Adaptador Ativo (Raylib / OpenGL 3.3):
+info:    • Dispositivo:      NVIDIA GeForce RTX 3060 Laptop GPU/PCIe/SSE2
+info:    • Fornecedor:       NVIDIA Corporation
+info:    • Backend Gráfico:  OpenGL 3.3 Core (windows)
+info:    • Preferência GPU:  HighPerformance
+info:    • Limite de FPS:    Ilimitado / VSync nativo
+info:    • Versão Driver:    3.3.0 NVIDIA 621.01
+info: ============================================================
+info: Carregando terreno: assets/levels/Scene.glb
+info: Colisão do nível: 18 pisos, 0 paredes, 0 tetos
+info: Player Idle pose bounds min=(-1.185,-0.003,-0.576) max=(1.226,1.458,0.380)
+info: Player Walk vertex sample Y: Idle=0.172537, Walk=0.157580
+info: ⏱️ [PERF] FPS: 242.8 (Méd: 4.12ms) | 1% Low: 222.7 FPS (4.49ms) | Min/Máx: 1.06/4.75ms | Jitter(σ): 0.41ms | Spikes: 0
+info: ⏱️ [PERF] FPS: 239.9 (Méd: 4.17ms) | 1% Low: 119.0 FPS (8.40ms) | Min/Máx: 1.12/8.75ms | Jitter(σ): 0.92ms | Spikes: 0
+info: ⏱️ [PERF] FPS: 123.5 (Méd: 8.10ms) | 1% Low: 107.0 FPS (9.35ms) | Min/Máx: 1.12/948.68ms | Jitter(σ): 60.88ms | Spikes: 1
+info: Display: Janela ajustada para (1920x1057), escala do canvas: 2.20x
+info: ⏱️ [PERF] FPS: 240.7 (Méd: 4.16ms) | 1% Low: 158.5 FPS (6.31ms) | Min/Máx: 1.02/10.19ms | Jitter(σ): 0.69ms | Spikes: 0
+info: ⏱️ [PERF] FPS: 240.0 (Méd: 4.17ms) | 1% Low: 216.0 FPS (4.63ms) | Min/Máx: 2.57/5.64ms | Jitter(σ): 0.24ms | Spikes: 0
+info: ⏱️ [PERF] FPS: 240.1 (Méd: 4.17ms) | 1% Low: 190.8 FPS (5.24ms) | Min/Máx: 1.87/6.58ms | Jitter(σ): 0.39ms | Spikes: 0

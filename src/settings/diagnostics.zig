@@ -109,6 +109,8 @@ pub const DiagnosticsSystem = struct {
     total_frames: u64 = 0,
     logged_hardware: bool = false,
     gpu_name: []const u8 = "GPU",
+    current_fps: f32 = 60.0,
+    current_avg_ms: f32 = 16.67,
 
     pub fn init(allocator: std.mem.Allocator, config: DiagnosticRenderConfig) DiagnosticsSystem {
         if (builtin.os.tag == .windows) {
@@ -205,6 +207,8 @@ pub const DiagnosticsSystem = struct {
         self.current_dt = dt;
 
         const dt_ms = dt * 1000.0;
+        self.current_avg_ms = dt_ms;
+        self.current_fps = if (dt > 0.0) 1.0 / dt else 0.0;
         self.frame_times_ms.append(self.allocator, dt_ms) catch {};
         self.total_frames += 1;
 
@@ -277,5 +281,15 @@ pub const DiagnosticsSystem = struct {
         }
 
         return dt;
+    }
+
+    /// Alterna o limitador de FPS entre 60.0 FPS cravados e Livre (null)
+    pub fn toggleTargetFps(self: *DiagnosticsSystem) ?f32 {
+        if (self.config.target_fps) |_| {
+            self.config.target_fps = null;
+        } else {
+            self.config.target_fps = 60.0;
+        }
+        return self.config.target_fps;
     }
 };

@@ -126,6 +126,20 @@ pub const TerrainManager = struct {
         try self.loadLevel(new_path, disp, collision);
     }
 
+    /// Reconfigura a filtragem de textura de todos os materiais do terreno em tempo real
+    pub fn updateTextureFiltering(self: *TerrainManager, mode: display.TextureFilteringMode, fallback: display.CrispFallbackFilter) void {
+        if (self.model) |m| {
+            const mat_count: usize = @intCast(@max(0, m.materialCount));
+            for (0..mat_count) |i| {
+                var tex: rl.c.Texture2D = m.materials[i].maps[rl.c.MATERIAL_MAP_DIFFUSE].texture;
+                if (tex.id != 0 and tex.id != rl.c.rlGetTextureIdDefault()) {
+                    display.configureModelTextureWithFallback(&tex, mode, fallback);
+                    m.materials[i].maps[rl.c.MATERIAL_MAP_DIFFUSE].texture = tex;
+                }
+            }
+        }
+    }
+
     /// Renderiza o modelo do terreno (com suporte a doubleSided conforme o material glTF)
     pub fn draw(self: *const TerrainManager) void {
         if (self.model) |m| {

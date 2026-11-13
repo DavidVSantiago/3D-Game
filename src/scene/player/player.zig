@@ -16,6 +16,16 @@ pub const PLAYER_RADIUS: f32 = 0.5;
 pub const STEP_HEIGHT: f32 = 0.5; // Maior degrau que o jogador sobe sem pular
 pub const VOID_Y: f32 = -30.0; // Abaixo disso o jogador reaparece
 pub const SPAWN_POSITION: Vec3 = Vec3.new(0.0, 10.0, 0.0);
+const PLAYER_MODEL_PATH: [:0]const u8 = "assets/person/esqueleto.glb";
+const IDLE_ANIMATION_INDEX: usize = 6;
+const WALK_ANIMATION_INDEX: usize = 25;
+// A malha animada da Raylib já está em Y para cima e tem aproximadamente 1,46 unidade de altura.
+const PLAYER_MODEL_SCALE: f32 = 0.8;
+const PLAYER_MODEL_FOOT_OFFSET: f32 = 0.0024;
+const ANIMATION_FPS: f32 = 1000.0 / 17.0;
+const WALK_SPEED_THRESHOLD: f32 = 0.1;
+
+const PlayerAnimation = enum { Idle, Walk };
 
 // ❤️ Estatísticas e estado de saúde do jogador
 pub const PlayerStats = struct {
@@ -59,23 +69,92 @@ pub const Player = struct {
     stats: PlayerStats = .{},
     visible: bool = true,
     model: rl.c.Model,
+    animations: [*c]rl.c.ModelAnimation,
+    animation_count: i32,
+    current_animation: PlayerAnimation = .Idle,
+    animation_frame: f32 = 0.0,
 
     pub fn init(disp: *const display.DisplaySystem) Player {
-        const cone_mesh = rl.c.GenMeshCone(PLAYER_RADIUS, PLAYER_HALF_HEIGHT * 2.0, 24);
-        var model = rl.c.LoadModelFromMesh(cone_mesh);
-        if (display.REMOVE_SPECULAR_PHONG) {
-            model.materials[0].shader = disp.lighting_shader;
+        var model = rl.c.LoadModel(PLAYER_MODEL_PATH.ptr);
+        var animation_count: i32 = 0;
+        const animations = rl.c.LoadModelAnimations(PLAYER_MODEL_PATH.ptr, &animation_count);
+
+        if (model.meshCount == 0 or animations == null or animation_count <= @as(i32, @intCast(WALK_ANIMATION_INDEX))) {
+            std.log.err("Falha ao carregar o modelo ou animações do jogador: {s}", .{PLAYER_MODEL_PATH});
+            if (animations != null and animation_count > 0) {
+                rl.c.UnloadModelAnimations(animations, animation_count);
+            }
+            rl.c.UnloadModel(model);
+            @panic("Não foi possível carregar assets/person/esqueleto.glb com as animações Idle e Walk");
         }
-        // Cor vermelha vibrante estilo Nintendo DS: srgb(0.95, 0.12, 0.12)
-        model.materials[0].maps[rl.c.MATERIAL_MAP_DIFFUSE].color = .{ .r = 242, .g = 31, .b = 31, .a = 255 };
+
+        const idle_animation = animations[IDLE_ANIMATION_INDEX];
+        const walk_animation = animations[WALK_ANIMATION_INDEX];
+        if (!rl.c.IsModelAnimationValid(model, idle_animation) or !rl.c.IsModelAnimationValid(model, walk_animation)) {
+            rl.c.UnloadModelAnimations(animations, animation_count);
+            rl.c.UnloadModel(model);
+            @panic("As animações Idle e Walk não correspondem ao esqueleto do jogador");
+        }
+
+        // O skinning é feito na CPU, portanto o shader de iluminação normal pode ser usado.
+        const material_count: usize = @intCast(@max(0, model.materialCount));
+        for (0..material_count) |i| {
+            if (display.REMOVE_SPECULAR_PHONG) model.materials[i].shader = disp.lighting_shader;
+            var diffuse = model.materials[i].maps[rl.c.MATERIAL_MAP_DIFFUSE].texture;
+            if (diffuse.id != 0 and diffuse.id != rl.c.rlGetTextureIdDefault()) {
+                display.configureModelTextureWithFallback(&diffuse, disp.filtering_mode, disp.crisp_fallback);
+                model.materials[i].maps[rl.c.MATERIAL_MAP_DIFFUSE].texture = diffuse;
+            }
+        }
+
+        model.transform = rl.c.MatrixIdentity();
+        applyAnimation(model, idle_animation, 0);
 
         return .{
             .model = model,
+            .animations = animations,
+            .animation_count = animation_count,
         };
     }
 
     pub fn deinit(self: *Player) void {
+        rl.c.UnloadModelAnimations(self.animations, self.animation_count);
         rl.c.UnloadModel(self.model);
+    }
+
+    pub fn updateAnimation(self: *Player, dt: f32) void {
+        if (dt <= 0.0) return;
+
+        const horizontal_speed = Vec3.new(self.controller.velocity.x, 0.0, self.controller.velocity.z).length();
+        const next_animation: PlayerAnimation = if (horizontal_speed > WALK_SPEED_THRESHOLD) .Walk else .Idle;
+        if (next_animation != self.current_animation) {
+            self.current_animation = next_animation;
+            self.animation_frame = 0.0;
+        }
+
+        const animation = switch (self.current_animation) {
+            .Idle => self.animations[IDLE_ANIMATION_INDEX],
+            .Walk => self.animations[WALK_ANIMATION_INDEX],
+        };
+        const frame_count: f32 = @floatFromInt(animation.frameCount);
+        if (frame_count <= 0.0) return;
+
+        self.animation_frame = @mod(self.animation_frame + dt * ANIMATION_FPS, frame_count);
+        applyAnimation(self.model, animation, @intFromFloat(self.animation_frame));
+    }
+
+    // UpdateModelAnimation percorre todas as malhas; o GLB também contém a adaga
+    // sem pesos de ossos, que deve permanecer estática e não pode ser animada na CPU.
+    fn applyAnimation(model: rl.c.Model, animation: rl.c.ModelAnimation, frame: i32) void {
+        const mesh_count: usize = @intCast(@max(0, model.meshCount));
+        for (0..mesh_count) |i| {
+            const mesh = &model.meshes[i];
+            if (mesh.boneIds == null or mesh.boneWeights == null or mesh.animVertices == null or mesh.boneMatrices == null) continue;
+            var skinned_model = model;
+            skinned_model.meshes = mesh;
+            skinned_model.meshCount = 1;
+            rl.c.UpdateModelAnimation(skinned_model, animation, frame);
+        }
     }
 
     // 🎮 Sistema integrado de física: inércia horizontal, gravidade, salto, atrito e colisão
@@ -353,11 +432,14 @@ pub const Player = struct {
     pub fn draw(self: *Player) void {
         if (!self.visible) return;
 
-        // Centraliza o cone do Raylib (base em -0.6, ponta em +0.6) antes de aplicar a rotação Quaternion
-        const center_offset = rl.c.MatrixTranslate(0.0, -PLAYER_HALF_HEIGHT, 0.0);
-        const rot_mat = rl.quatToMatrix(self.rotation);
-        self.model.transform = rl.c.MatrixMultiply(center_offset, rot_mat);
+        // A pose animada já tem o eixo Y para cima; aplica yaw e inclinação do terreno.
+        const visual_rotation = self.controller.tilt.mul(Quat.fromRotationY(self.controller.facing_yaw));
+        const rot_mat = rl.quatToMatrix(visual_rotation);
+        const model_scale = rl.c.MatrixScale(PLAYER_MODEL_SCALE, PLAYER_MODEL_SCALE, PLAYER_MODEL_SCALE);
+        self.model.transform = rl.c.MatrixMultiply(model_scale, rot_mat);
 
-        rl.c.DrawModel(self.model, rl.toRlVec3(self.position), 1.0, rl.c.WHITE);
+        // Alinha a base da malha ao fundo do colisor físico.
+        const model_position = self.position.add(Vec3.new(0.0, PLAYER_MODEL_FOOT_OFFSET - PLAYER_HALF_HEIGHT, 0.0));
+        rl.c.DrawModel(self.model, rl.toRlVec3(model_position), 1.0, rl.c.WHITE);
     }
 };
